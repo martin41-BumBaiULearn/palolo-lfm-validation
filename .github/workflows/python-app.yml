@@ -1,36 +1,27 @@
+name: Pālolo LFM Validation
 
-name: Run Pālolo LFM Validation
-on: 
-  push:
-  workflow_dispatch:
+on: [push, pull_request]
 
 jobs:
   validate:
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-    - name: Set-up Python  
-      uses: actions/set-up-python@v5 
-      with: 
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+        
     - name: Install GIS libraries
       run: |
-          sudo apt-get update -y
-          sudo apt-get install -y gdal-bin libgdal-dev libexpat1
-          pip install numpy matplotlib rasterio scipy scikit-image pysheds geopandas
-          
+        sudo apt-get update
+        sudo apt-get install -y gdal-bin libgdal-dev
+        pip install numpy pandas rasterio geopandas shapely pyproj
+        
     - name: Download Oahu DEM
-      run:  
-          wget -O palolo_dem.tif https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1/TIFF/current/n21w158/USGS_1_n21w158.tif
-          
+      run: |
+        wget https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1/TIFF/current/n21w158/USGS_1_n21w158.tif
+        
     - name: Run Pālolo validation
       run: python validate_palolo.py
-        
-    - name: Upload results
-      uses: actions/upload-artifact@v4
-      with:
-      name: palolo-results
-      path: palolo_bottlenecks.png
