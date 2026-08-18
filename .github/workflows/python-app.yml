@@ -17,7 +17,7 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install -y gdal-bin libgdal-dev
-        pip install numpy pandas rasterio geopandas shapely pyproj
+        pip install numpy pandas rasterio geopandas shapely pyproj matplotlib
         
     - name: Download Oahu DEM
       run: |
