@@ -1,29 +1,23 @@
 name: Pālolo LFM Validation
-
-on: [push, pull_request]
+on: [push]
 
 jobs:
   validate:
     runs-on: ubuntu-latest
+    container: 
+      image: ghcr.io/osgeo/gdal:ubuntu-full-3.8.4
+    
     steps:
     - uses: actions/checkout@v4
     
-    - name: Set up Miniconda
-      uses: conda-incubator/setup-miniconda@v3
-      with:
-        python-version: '3.11'
-        channels: conda-forge,defaults
-        channel-priority: true
-        
-    - name: Install all GIS + science libs
-      shell: bash -l {0}
+    - name: Install everything Python needs
       run: |
-        conda install -y numpy pandas matplotlib scipy rasterio geopandas shapely pyproj scikit-image
+        python3 -m pip install --upgrade pip
+        pip3 install numpy pandas matplotlib scipy rasterio geopandas shapely pyproj scikit-image fiona
+        apt-get update && apt-get install -y wget
         
     - name: Download Oahu DEM
-      run: |
-        wget https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1/TIFF/current/n21w158/USGS_1_n21w158.tif
+      run: wget https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1/TIFF/current/n21w158/USGS_1_n21w158.tif -O dem.tif
         
     - name: Run Pālolo validation
-      shell: bash -l {0}
-      run: python validate_palolo.py
+      run: python3 validate_palolo.py
