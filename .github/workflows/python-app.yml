@@ -22,7 +22,7 @@ jobs:
           
       - name: Download Oahu DEM
         run:  
-          wget -O palolo_dem.tif https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1/TIFF/current/n21w158/USGS_13_n21w158.tif
+          wget -O palolo_dem.tif https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1/TIFF/current/n21w158/USGS_1_n21w158.tif
           
       - name: Run Pālolo validation
         run: python validate_palolo.py
