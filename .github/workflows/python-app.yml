@@ -8,20 +8,22 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     
-    - name: Set up Python
-      uses: actions/setup-python@v5
+    - name: Set up Miniconda
+      uses: conda-incubator/setup-miniconda@v3
       with:
         python-version: '3.11'
+        channels: conda-forge,defaults
+        channel-priority: true
         
-    - name: Install GIS libraries
+    - name: Install all GIS + science libs
+      shell: bash -l {0}
       run: |
-        sudo apt-get update
-        sudo apt-get install -y gdal-bin libgdal-dev
-        pip install numpy pandas rasterio geopandas shapely pyproj matplotlib
+        conda install -y numpy pandas matplotlib scipy rasterio geopandas shapely pyproj scikit-image
         
     - name: Download Oahu DEM
       run: |
         wget https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/1/TIFF/current/n21w158/USGS_1_n21w158.tif
         
     - name: Run Pālolo validation
+      shell: bash -l {0}
       run: python validate_palolo.py
