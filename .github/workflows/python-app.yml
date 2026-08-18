@@ -17,11 +17,11 @@ jobs:
       - name: Install GIS libraries
         run: |
           sudo apt-get update
-          sudo apt-get install -y gdal-bin libgdal-dev libexpat1
-          pip install numpy matplotlib rasterio scipy scikit-image
+          sudo apt-get install -y gdal-bin libgdal=dev libexpat1-dev
+          pip install numpy matplotlib rasterio scipy scikit-image pysheds geopanda
           
       - name: Download Oahu DEM
-        run: wget https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/13/TIFF/n21w158/USGS_13_n22w158.tif
+        run: wget -O palolo_dem.tif https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/13/TIFF/n21w158/USGS_13_n21w158.tif
           
       - name: Run Pālolo validation
         run: python validate_palolo.py
