@@ -1,119 +1,33 @@
-# Install required libraries if missing
-# !pip install rasterio numpy scipy matplotlib skimage
-
-import matplotlib.pyplot as plt
-import numpy as np
-import rasterio
-from scipy.ndimage import maximum_filter
-from skimage.graph import route_through_array
-
-# 1. Read the DEM file (Upload your file to Colab and update the path)
-dem_path = 'your_dem_file.tif'  # Replace with your uploaded filename
-with rasterio.open(dem_path) as src:
-  dem = src.read(1).astype(float)
-  # Handle nodata values if present
-  if src.nodatavals[0] is not None:
-    dem[dem == src.nodatavals[0]] = np.nan
-    dem = np.nan_to_num(dem, nan=np.nanmean(dem))
-
-# 2. Calculate "Cost Surface" based on terrain gradient (slope)
-dy, dx = np.gradient(dem)
-slope = np.sqrt(dx**2 + dy**2)
-cost_surface = slope / np.max(slope)  # Normalize between 0 and 1
-cost_surface += 1e-5  # Prevent zero-cost divisions in path finding
-
-# 3. Route the path of least resistance from start to end pixel
-# Define start (row, col) and end (row, col) indices
-start_pixel = (10, 10)
-end_pixel = (dem.shape[0] - 10, dem.shape[1] - 10)
-
-indices, cost = route_through_array(
-    cost_surface, start_pixel, end_pixel, geometric=True
-)
-path_array = np.array(indices)
-
-# 4. Scan path for bottlenecks (local maximums in slope/cost along the path)
-path_costs = [cost_surface[r, c] for r, c in indices]
-# Find local peaks along the 1D path profile
-local_max_mask = (
-    path_costs
-    == maximum_filter(path_costs, size=5, mode='reflect', origin=0)
-)
-bottleneck_indices = [
-    indices[i] for i, is_max in enumerate(local_max_mask) if is_max
-]
-
-# 5. Apply custom derivative math ($B = -1.3765$) at bottleneck locations
-b_value = -1.3765
-modified_cost_surface = cost_surface.copy()
-for r, c in bottleneck_indices:
-  modified_cost_surface[r, c] *= b_value
-
-# Re-route or tag values based on modified constraints
-# (Applying the derivative scaling factor directly to the locations)
-
-# 6. Plot the result to visually verify the route
-fig, ax = plt.subplots(figsize=(10, 8))
-im = ax.imshow(dem, cmap='terrain')
-ax.plot(
-    path_array[:, 1],
-    path_array[:, 0],
-    color='red',
-    linewidth=2,
-    label='Least Cost Path',
-)
-
-if bottleneck_indices:
-  bn_arr = np.array(bottleneck_indices)
-  ax.scatter(
-      bn_arr[:, 1],
-      bn_arr[:, 0],
-      color='yellow',
-      s=50,
-      marker='x',
-      label='Bottlenecks ($B = -1.3765$)',
-  )
-
-plt.colorbar(im, ax=ax, label='Elevation')
-plt.title('Terrain Route and Bottleneck Analysis')
-plt.legend()
-plt.show()
- This workflow will install Python dependencies, run tests and lint with a single version of Python
-# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-python
-
-name: Python application
-
-on:
+name: Run Pālolo LFM Validation
+on: 
   push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
-
-permissions:
-  contents: read
+  workflow_dispatch:
 
 jobs:
-  build:
-
+  run-analysis:
     runs-on: ubuntu-latest
-
     steps:
-    - uses: actions/checkout@v4
-    - name: Set up Python 3.10
-      uses: actions/setup-python@v3
-      with:
-        python-version: "3.10"
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install flake8 pytest
-        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-    - name: Lint with flake8
-      run: |
-        # stop the build if there are Python syntax errors or undefined names
-        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-        # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
-        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
-    - name: Test with pytest
-      run: |
-        pytest
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          
+      - name: Install GIS libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gdal-bin libgdal-dev libexpat1
+          pip install numpy matplotlib rasterio scipy scikit-image
+          
+      - name: Download Oahu DEM
+        run: wget https://prd-tnm.s3.amazonaws.com/StagedProducts/Elevation/13/TIFF/n22w158/USGS_13_n22w158.tif
+          
+      - name: Run Pālolo validation
+        run: python validate_palolo.py
+        
+      - name: Upload results
+        uses: actions/upload-artifact@v4
+        with:
+          name: palolo-results
+          path: palolo_bottlenecks.png
